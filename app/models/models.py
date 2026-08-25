@@ -37,7 +37,7 @@ class Song(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     title: Mapped[str] = mapped_column(String)
-    release_date: Mapped[date] = mapped_column(Date)
+    release_date: Mapped[date|None] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     last_update: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     album_id: Mapped[int | None] = mapped_column(  # now nullable
@@ -59,7 +59,7 @@ class Album(Base):
     __tablename__ = "albums"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
-    release_date: Mapped[date] = mapped_column(Date)
+    release_date: Mapped[date|None] = mapped_column(Date, nullable=True)
     author: Mapped[str | None] = mapped_column(String, nullable=True)
     songs: Mapped[list["Song"]] = relationship(
         back_populates="album",  # write the table_name, not the className
