@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import select, func
+from sqlalchemy import select, func, asc, desc
 from app.database.database import get_db
 from app.models import models
 from app.schemas.kpop import AlbumCreate, AlbumResponse, AlbumUpdate, PaginationResponse
 from app.utils.slug import slugify
+from app.config.enums import SortOrder, AlbumSortFields
 
 router = APIRouter()
 
@@ -13,9 +14,21 @@ router = APIRouter()
 def get_albums(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
+    sort_by: AlbumSortFields = AlbumSortFields.NAME,
+    order_by: SortOrder = SortOrder.ASC,
     db: Session = Depends(get_db),
 ):
+
+    # get sort and order by vals
+    sort_col = getattr(models.Album, sort_by.value)
+    order_func = desc if order_by == SortOrder.DESC else asc
+
+    # base query
     queryset = select(models.Album)
+
+    # sort
+    queryset = queryset.order_by(order_func(sort_col))
+
     # Pagination
     queryset = queryset.offset(skip).limit(limit)
     return {

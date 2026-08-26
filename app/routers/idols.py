@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import select, func
+from sqlalchemy import select, func, asc, desc
 from app.database.database import get_db
 from app.models import models
 from app.schemas.kpop import IdolCreate, IdolResponse, IdolUpdate, PaginationResponse
 from app.utils.slug import slugify
+from app.config.enums import IdolSortFields, SortOrder
 
 router = APIRouter()
 
@@ -13,10 +14,21 @@ router = APIRouter()
 def get_idols(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
+    sort_by: IdolSortFields = IdolSortFields.STAGE_NAME,
+    order_by: SortOrder = SortOrder.ASC,
     db: Session = Depends(get_db),
 ):
 
+    # get the sort and order by attribute
+    sort_column = getattr(models.Idol, sort_by.value)
+    order_func = desc if order_by == SortOrder.DESC else asc
+
+    # base queryset
     queryset = select(models.Idol)
+
+    # sort
+    queryset = queryset.order_by(order_func(sort_column))
+
     # pagination
     queryset = queryset.offset(skip).limit(limit)
     return {
