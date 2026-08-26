@@ -1,17 +1,32 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, func
 from app.database.database import get_db
 from app.models import models
-from app.schemas.kpop import GroupCreate, GroupResponse, GroupUpdate
+from app.schemas.kpop import GroupCreate, GroupResponse, GroupUpdate, PaginationResponse
 from app.utils.slug import slugify
 
 router = APIRouter()
 
 
-@router.get("/", response_model=list[GroupResponse])
-def get_groups(db: Session = Depends(get_db)):
-    return db.execute(select(models.Group)).scalars().all()
+@router.get("/", response_model=PaginationResponse[GroupResponse])
+def get_groups(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    queryset = select(models.Group)
+    # pagination
+    queryset = queryset.offset(skip).limit(limit)
+
+    return {
+        "total": db.execute(
+            select(func.count()).select_from(models.Group)
+        ).scalar_one(),
+        "skip": skip,
+        "limit": limit,
+        "items": db.execute(queryset).scalars().all(),
+    }
 
 
 @router.get("/{group_id}", response_model=GroupResponse)

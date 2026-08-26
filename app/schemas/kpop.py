@@ -1,6 +1,16 @@
 from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict
 from app.config.enums import GenderChoice
+from typing import Generic, TypeVar
+
+T = TypeVar("T")
+
+
+class PaginationResponse(BaseModel, Generic[T]):
+    total: int
+    skip: int
+    limit: int
+    items: list[T]
 
 
 class SongBase(BaseModel):
@@ -9,11 +19,14 @@ class SongBase(BaseModel):
 
 
 class SongCreate(SongBase):
-    album_id: int   # required at creation
+    album_id: int  # required at creation
+
 
 class SongResponse(SongBase):
     id: int
-    album_id: int | None = None   # optional here, a Response for an orphaned song has no album
+    album_id: int | None = (
+        None  # optional here, a Response for an orphaned song has no album
+    )
     created_at: datetime | None = None
     last_update: datetime | None = None
     album: "AlbumBase|None"

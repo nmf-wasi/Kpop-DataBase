@@ -1,17 +1,31 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, func
 from app.database.database import get_db
 from app.models import models
-from app.schemas.kpop import AlbumCreate, AlbumResponse, AlbumUpdate
+from app.schemas.kpop import AlbumCreate, AlbumResponse, AlbumUpdate, PaginationResponse
 from app.utils.slug import slugify
 
 router = APIRouter()
 
 
-@router.get("/", response_model=list[AlbumResponse])
-def get_albums(db: Session = Depends(get_db)):
-    return db.execute(select(models.Album)).scalars().all()
+@router.get("/", response_model=PaginationResponse[AlbumResponse])
+def get_albums(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    queryset = select(models.Album)
+    # Pagination
+    queryset = queryset.offset(skip).limit(limit)
+    return {
+        "total": db.execute(
+            select(func.count()).select_from(models.Album)
+        ).scalar_one(),
+        "skip": skip,
+        "limit": limit,
+        "items": db.execute(queryset).scalars().all(),
+    }
 
 
 @router.get("/{album_id}", response_model=AlbumResponse)
@@ -26,13 +40,13 @@ def get_album(album_id: int, db: Session = Depends(get_db)):
         )
     return album
 
+
 @router.post("/", response_model=AlbumResponse)
-def create_album(album_data:AlbumCreate, db:Session=Depends(get_db)):
-    album_exists=db.execute(
-        select(models.Album)
-        .where(
-            models.Album.name==album_data.name,
-            models.Album.group_id==album_data.group_id,
+def create_album(album_data: AlbumCreate, db: Session = Depends(get_db)):
+    album_exists = db.execute(
+        select(models.Album).where(
+            models.Album.name == album_data.name,
+            models.Album.group_id == album_data.group_id,
         )
     ).scalar_one_or_none()
     if album_exists:
@@ -43,8 +57,7 @@ def create_album(album_data:AlbumCreate, db:Session=Depends(get_db)):
 
     if album_data.group_id:
         group_exists = db.execute(
-            select(models.Group)
-            .where(
+            select(models.Group).where(
                 models.Group.id == album_data.group_id,
             )
         ).scalar_one_or_none()
@@ -54,22 +67,22 @@ def create_album(album_data:AlbumCreate, db:Session=Depends(get_db)):
                 detail="Group not found!",
             )
 
-    new_album=models.Album()
-    for key,value in album_data.model_dump().items():
+    new_album = models.Album()
+    for key, value in album_data.model_dump().items():
         setattr(new_album, key, value)
-    slugs=db.execute(select(models.Album.slug)).scalars().all()
-    new_slug=slugify(album_data.name, slugs)
-    new_album.slug=new_slug
+    slugs = db.execute(select(models.Album.slug)).scalars().all()
+    new_slug = slugify(album_data.name, slugs)
+    new_album.slug = new_slug
     db.add(new_album)
     db.commit()
     db.refresh(new_album)
     return new_album
 
+
 @router.patch("/{album_id}", response_model=AlbumResponse)
-def update_album(album_id:int, album_data:AlbumUpdate, db:Session=Depends(get_db)):
+def update_album(album_id: int, album_data: AlbumUpdate, db: Session = Depends(get_db)):
     album = db.execute(
-        select(models.Album)
-        .where(
+        select(models.Album).where(
             models.Album.id == album_id,
         )
     ).scalar_one_or_none()
@@ -80,8 +93,7 @@ def update_album(album_id:int, album_data:AlbumUpdate, db:Session=Depends(get_db
         )
     if album_data.group_id:
         group_exists = db.execute(
-            select(models.Group)
-            .where(
+            select(models.Group).where(
                 models.Group.id == album_data.group_id,
             )
         ).scalar_one_or_none()
@@ -93,8 +105,7 @@ def update_album(album_id:int, album_data:AlbumUpdate, db:Session=Depends(get_db
 
     if album_data.name and album_data.group_id:
         album_exists = db.execute(
-            select(models.Album)
-            .where(
+            select(models.Album).where(
                 models.Album.name == album_data.name,
                 models.Album.group_id == album_data.group_id,
                 models.Album.id != album_id,
@@ -106,11 +117,15 @@ def update_album(album_id:int, album_data:AlbumUpdate, db:Session=Depends(get_db
                 detail="Album with same name exists for this group",
             )
 
-    updated_data=album_data.model_dump(exclude_unset=True)
+    updated_data = album_data.model_dump(exclude_unset=True)
     for key, value in updated_data.items():
         setattr(album, key, value)
     if album_data.name:
-        slugs = db.execute(select(models.Album.slug).where(models.Album.id!=album_id)).scalars().all()
+        slugs = (
+            db.execute(select(models.Album.slug).where(models.Album.id != album_id))
+            .scalars()
+            .all()
+        )
         new_slug = slugify(album_data.name, slugs)
         album.slug = new_slug
 
@@ -120,10 +135,9 @@ def update_album(album_id:int, album_data:AlbumUpdate, db:Session=Depends(get_db
 
 
 @router.delete("/{album_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_album(album_id:int, db:Session=Depends(get_db)):
+def delete_album(album_id: int, db: Session = Depends(get_db)):
     album = db.execute(
-        select(models.Album)
-        .where(
+        select(models.Album).where(
             models.Album.id == album_id,
         )
     ).scalar_one_or_none()
