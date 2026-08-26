@@ -56,8 +56,12 @@ class GroupResponse(GroupBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class GroupUpdate(BaseModel):
+    name: str | None = None
+
+
 class IdolBase(BaseModel):
-    stage_name: str | None = None
+    stage_name: str
     full_name: str | None = None
     korean_name: str | None = None
     korean_stage_name: str | None = None
@@ -66,6 +70,9 @@ class IdolBase(BaseModel):
     birth_place: str | None = None
     country: str | None = None
     instagram_username: str | None = None
+
+
+# gotta add date validation here
 
 
 class IdolCreate(IdolBase):
@@ -77,3 +84,16 @@ class IdolResponse(IdolBase):
     group: GroupBase | None = None
     slug: str | None = None
     model_config = ConfigDict(from_attributes=True)
+
+
+class IdolUpdate(BaseModel):
+    stage_name: str | None = None
+    full_name: str | None = None
+    korean_name: str | None = None
+    korean_stage_name: str | None = None
+    birth_date: date | None = None
+    gender: GenderChoice | None
+    birth_place: str | None = None
+    country: str | None = None
+    instagram_username: str | None = None
+    group_id: int | None = None
