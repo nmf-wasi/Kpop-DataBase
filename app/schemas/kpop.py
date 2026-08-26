@@ -6,19 +6,24 @@ from app.config.enums import GenderChoice
 class SongBase(BaseModel):
     title: str
     release_date: date | None = None
-    album_id: int | None = None
 
 
 class SongCreate(SongBase):
-    pass
-
+    album_id: int   # required at creation
 
 class SongResponse(SongBase):
     id: int
+    album_id: int | None = None   # optional here, a Response for an orphaned song has no album
     created_at: datetime | None = None
     last_update: datetime | None = None
     album: "AlbumBase|None"
     model_config = ConfigDict(from_attributes=True)
+
+
+class SongUpdate(BaseModel):
+    title: str | None = None
+    release_date: date | None = None
+    album_id: int | None = None
 
 
 class AlbumBase(BaseModel):
@@ -38,6 +43,13 @@ class AlbumResponse(AlbumBase):
     group: "GroupBase|None"
     slug: str
     model_config = ConfigDict(from_attributes=True)
+
+
+class AlbumUpdate(BaseModel):
+    name: str | None = None
+    release_date: date | None = None
+    author: str | None = None
+    group_id: int | None = None
 
 
 class GroupBase(BaseModel):
