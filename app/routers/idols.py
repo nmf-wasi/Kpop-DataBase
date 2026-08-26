@@ -16,6 +16,9 @@ def get_idols(
     limit: int = Query(10, ge=1, le=100),
     sort_by: IdolSortFields = IdolSortFields.STAGE_NAME,
     order_by: SortOrder = SortOrder.ASC,
+    country: str | None = None,
+    birth_place: str | None = None,
+    group_id: int | None = None,
     db: Session = Depends(get_db),
 ):
 
@@ -26,13 +29,28 @@ def get_idols(
     # base queryset
     queryset = select(models.Idol)
 
+    # add filters on count queryset as well
+    count_queryset = select(func.count()).select_from(models.Idol)
+
+    # filters
+    filters = []
+    if country is not None:
+        filters.append(models.Idol.country == country)
+    if birth_place is not None:
+        filters.append(models.Idol.birth_place == birth_place)
+    if group_id is not None:
+        filters.append(models.Idol.group_id == group_id)
+
+    queryset = queryset.where(*filters)
+    count_queryset = count_queryset.where(*filters)
     # sort
     queryset = queryset.order_by(order_func(sort_column))
 
     # pagination
     queryset = queryset.offset(skip).limit(limit)
+
     return {
-        "total": db.execute(select(func.count()).select_from(models.Idol)).scalar_one(),
+        "total": db.execute(count_queryset).scalar_one(),
         "skip": skip,
         "limit": limit,
         "items": db.execute(queryset).scalars().all(),

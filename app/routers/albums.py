@@ -16,6 +16,8 @@ def get_albums(
     limit: int = Query(10, ge=1, le=100),
     sort_by: AlbumSortFields = AlbumSortFields.NAME,
     order_by: SortOrder = SortOrder.ASC,
+    author: str | None = None,
+    group_id: int | None = None,
     db: Session = Depends(get_db),
 ):
 
@@ -25,6 +27,17 @@ def get_albums(
 
     # base query
     queryset = select(models.Album)
+    count_queryset = select(func.count()).select_from(models.Album)
+
+    # filters
+    filters = []
+    if author is not None:
+        filters.append(models.Album.author == author)
+    if group_id is not None:
+        filters.append(models.Album.group_id == group_id)
+
+    queryset = queryset.where(*filters)
+    count_queryset = count_queryset.where(*filters)
 
     # sort
     queryset = queryset.order_by(order_func(sort_col))
@@ -32,9 +45,7 @@ def get_albums(
     # Pagination
     queryset = queryset.offset(skip).limit(limit)
     return {
-        "total": db.execute(
-            select(func.count()).select_from(models.Album)
-        ).scalar_one(),
+        "total": db.execute(count_queryset).scalar_one(),
         "skip": skip,
         "limit": limit,
         "items": db.execute(queryset).scalars().all(),

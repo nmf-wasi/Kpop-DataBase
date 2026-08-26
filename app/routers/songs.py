@@ -15,6 +15,7 @@ def get_songs(
     limit: int = Query(10, ge=1, le=100),
     sort_by: SongSortFields = SongSortFields.TITLE,
     order_by: SortOrder = SortOrder.ASC,
+    album_id: int | None = None,
     db: Session = Depends(get_db),
 ):
 
@@ -24,6 +25,15 @@ def get_songs(
 
     # base queryset
     queryset = select(models.Song)
+    count_queryset = select(func.count()).select_from(models.Song)
+
+    # filters
+    filters = []
+    if album_id is not None:
+        filters.append(models.Song.album_id == album_id)
+
+    queryset = queryset.where(*filters)
+    count_queryset = count_queryset.where(*filters)
 
     # sort
     queryset = queryset.order_by(order_func(sort_col))
@@ -31,7 +41,7 @@ def get_songs(
     # pagination
     queryset = queryset.offset(skip).limit(limit)
     return {
-        "total": db.execute(select(func.count()).select_from(models.Song)).scalar_one(),
+        "total": db.execute(count_queryset).scalar_one(),
         "skip": skip,
         "limit": limit,
         "items": db.execute(queryset).scalars().all(),
