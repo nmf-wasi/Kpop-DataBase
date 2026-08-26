@@ -1,6 +1,14 @@
 from app.database.database import Base
 from sqlalchemy.orm import mapped_column, Mapped, relationship
-from sqlalchemy import Integer, String, DateTime, Date, ForeignKey, Index, Enum as SQLEnum
+from sqlalchemy import (
+    Integer,
+    String,
+    DateTime,
+    Date,
+    ForeignKey,
+    Index,
+    Enum as SQLEnum,
+)
 from app.config.enums import UserRole, GenderChoice
 from datetime import datetime
 from datetime import date
@@ -37,7 +45,7 @@ class Song(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     title: Mapped[str] = mapped_column(String)
-    release_date: Mapped[date|None] = mapped_column(Date, nullable=True)
+    release_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     last_update: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     album_id: Mapped[int | None] = mapped_column(  # now nullable
@@ -59,7 +67,7 @@ class Album(Base):
     __tablename__ = "albums"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
-    release_date: Mapped[date|None] = mapped_column(Date, nullable=True)
+    release_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     author: Mapped[str | None] = mapped_column(String, nullable=True)
     songs: Mapped[list["Song"]] = relationship(
         back_populates="album",  # write the table_name, not the className
@@ -125,7 +133,9 @@ class Idol(Base):
     group: Mapped["Group|None"] = relationship(back_populates="members")
     country: Mapped[str | None] = mapped_column(nullable=True)
     instagram_username: Mapped[str | None] = mapped_column(nullable=True)
-    gender: Mapped[GenderChoice|None] = mapped_column(SQLEnum(GenderChoice),nullable=True)
+    gender: Mapped[GenderChoice | None] = mapped_column(
+        SQLEnum(GenderChoice), nullable=True
+    )
     slug = mapped_column(String, unique=True, index=True)
 
     __table_args__ = (
@@ -133,3 +143,18 @@ class Idol(Base):
         Index("idx_idol_group_id", "group_id"),
         Index("idx_idol_stage_name", "stage_name"),
     )
+
+    def __repr__(self):
+        return f"""
+            id : {self.id}
+            stage name: {self.stage_name}
+            full_name : {self.full_name}
+            korean_name: {self.korean_name}
+            korean_stage_name : {self.korean_stage_name}
+            birth_date : {self.birth_date}
+            group :{self.group}
+            country : {self.country}
+            birth_place : {self.birth_place}
+            gender : {self.gender}
+            instagram_username : {self.instagram_username}
+        """

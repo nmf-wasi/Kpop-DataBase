@@ -8,5 +8,6 @@ class UserRole(str, Enum):
 
 class GenderChoice(str, Enum):
     """Gives Gender choice to idols"""
-    MALE="male"
-    FEMALE="female"
+    MALE="M"
+    FEMALE="F"
+    # the name we use = the value stored in db
