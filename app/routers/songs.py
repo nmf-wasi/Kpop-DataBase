@@ -17,6 +17,7 @@ def get_songs(
     sort_by: SongSortFields = SongSortFields.TITLE,
     order_by: SortOrder = SortOrder.ASC,
     album_id: int | None = None,
+    search: str | None = None,
     db: Session = Depends(get_db),
 ):
 
@@ -30,8 +31,12 @@ def get_songs(
     )
     count_queryset = select(func.count()).select_from(models.Song)
 
-    # filters
+
     filters = []
+    # search
+    if search is not None:
+        filters.append(models.Song.title.ilike(f"%{search}%"))
+    # filters
     if album_id is not None:
         filters.append(models.Song.album_id == album_id)
 

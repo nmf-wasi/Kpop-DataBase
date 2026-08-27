@@ -7,6 +7,7 @@ from app.schemas.kpop import GroupCreate, GroupResponse, GroupUpdate, Pagination
 from app.utils.slug import slugify
 from app.config.enums import SortOrder, GroupSortFields, UserRole
 from app.dependencies import get_current_user, require_role
+import re
 
 router = APIRouter()
 
@@ -17,6 +18,7 @@ def get_groups(
     limit: int = Query(10, ge=1, le=100),
     sort_by: GroupSortFields = GroupSortFields.NAME,
     order_by: SortOrder = SortOrder.ASC,
+    search: str | None = None,
     db: Session = Depends(get_db),
 ):
 
@@ -29,6 +31,25 @@ def get_groups(
         selectinload(models.Group.albums),
         selectinload(models.Group.members),
     )
+    count_queryset = select(func.count()).select_from(models.Group)
+
+    filters = []
+    # search
+    if search is not None:
+        normalized_search = re.sub(
+            r"[^a-zA-Z0-9]",
+            "",
+            search,
+        ).lower()
+
+        filters.append(
+            func.regexp_replace(models.Group.name, r"[^a-zA-Z0-9]", "", "g").ilike(
+                f"%{normalized_search}%"
+            )
+        ) # all these pain for (G) I-DLE -_-
+
+    queryset = queryset.where(*filters)
+    count_queryset = count_queryset.where(*filters)
 
     # sort
     queryset = queryset.order_by(order_func(sort_column))
@@ -37,9 +58,7 @@ def get_groups(
     queryset = queryset.offset(skip).limit(limit)
 
     return {
-        "total": db.execute(
-            select(func.count()).select_from(models.Group)
-        ).scalar_one(),
+        "total": db.execute(count_queryset).scalar_one(),
         "skip": skip,
         "limit": limit,
         "items": db.execute(queryset).scalars().all(),

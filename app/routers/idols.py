@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, selectinload
-from sqlalchemy import select, func, asc, desc
+from sqlalchemy import select, func, asc, desc, or_
 from app.database.database import get_db
 from app.models import models
 from app.schemas.kpop import IdolCreate, IdolResponse, IdolUpdate, PaginationResponse
@@ -20,6 +20,7 @@ def get_idols(
     country: str | None = None,
     birth_place: str | None = None,
     group_id: int | None = None,
+    search: str | None = None,
     db: Session = Depends(get_db),
 ):
 
@@ -37,6 +38,18 @@ def get_idols(
 
     # filters
     filters = []
+    # search
+    if search is not None:
+        filters.append(
+            or_(
+                models.Idol.stage_name.ilike(f"%{search}%"),
+                models.Idol.korean_name.ilike(f"%{search}%"),
+                models.Idol.full_name.ilike(f"%{search}%"),
+                models.Idol.korean_stage_name.ilike(f"%{search}%"),
+                models.Idol.instagram_username.ilike(f"%{search}%"),
+            )
+        )
+    # filters
     if country is not None:
         filters.append(models.Idol.country == country)
     if birth_place is not None:

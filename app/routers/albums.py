@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, selectinload
-from sqlalchemy import select, func, asc, desc
+from sqlalchemy import select, func, asc, desc, or_
 from app.database.database import get_db
 from app.models import models
 from app.schemas.kpop import AlbumCreate, AlbumResponse, AlbumUpdate, PaginationResponse
@@ -19,6 +19,7 @@ def get_albums(
     order_by: SortOrder = SortOrder.ASC,
     author: str | None = None,
     group_id: int | None = None,
+    search: str | None = None,
     db: Session = Depends(get_db),
 ):
 
@@ -35,6 +36,12 @@ def get_albums(
 
     # filters
     filters = []
+    # search
+    if search is not None:
+        filters.append(
+            models.Album.name.ilike(f"%{search}%"),
+        )
+    # filters
     if author is not None:
         filters.append(models.Album.author == author)
     if group_id is not None:
