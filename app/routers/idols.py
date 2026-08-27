@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import select, func, asc, desc
 from app.database.database import get_db
 from app.models import models
@@ -27,7 +27,9 @@ def get_idols(
     order_func = desc if order_by == SortOrder.DESC else asc
 
     # base queryset
-    queryset = select(models.Idol)
+    queryset = select(models.Idol).options(
+        selectinload(models.Idol.group),
+    )
 
     # add filters on count queryset as well
     count_queryset = select(func.count()).select_from(models.Idol)
@@ -63,7 +65,11 @@ def get_idol(
     db: Session = Depends(get_db),
 ):
     idol = db.execute(
-        select(models.Idol).where(models.Idol.id == idol_id)
+        select(models.Idol)
+        .options(
+            selectinload(models.Idol.group),
+        )
+        .where(models.Idol.id == idol_id)
     ).scalar_one_or_none()
     if not idol:
         raise HTTPException(

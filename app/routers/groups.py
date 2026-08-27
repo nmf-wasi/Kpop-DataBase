@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import select, func, asc, desc
 from app.database.database import get_db
 from app.models import models
@@ -24,7 +24,10 @@ def get_groups(
     order_func = desc if order_by == SortOrder.DESC else asc
 
     # base queryset
-    queryset = select(models.Group)
+    queryset = select(models.Group).options(
+        selectinload(models.Group.albums),
+        selectinload(models.Group.members),
+    )
 
     # sort
     queryset = queryset.order_by(order_func(sort_column))
@@ -45,7 +48,12 @@ def get_groups(
 @router.get("/{group_id}", response_model=GroupResponse)
 def get_group(group_id: int, db: Session = Depends(get_db)):
     group = db.execute(
-        select(models.Group).where(models.Group.id == group_id)
+        select(models.Group)
+        .options(
+            selectinload(models.Group.albums),
+            selectinload(models.Group.members),
+        )
+        .where(models.Group.id == group_id)
     ).scalar_one_or_none()
     if not group:
         raise HTTPException(

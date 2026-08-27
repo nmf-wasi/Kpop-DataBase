@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import select, func, asc, desc
 from app.database.database import get_db
 from app.models import models
@@ -26,7 +26,10 @@ def get_albums(
     order_func = desc if order_by == SortOrder.DESC else asc
 
     # base query
-    queryset = select(models.Album)
+    queryset = select(models.Album).options(
+        selectinload(models.Album.songs),
+        selectinload(models.Album.group),
+    )
     count_queryset = select(func.count()).select_from(models.Album)
 
     # filters
@@ -55,7 +58,12 @@ def get_albums(
 @router.get("/{album_id}", response_model=AlbumResponse)
 def get_album(album_id: int, db: Session = Depends(get_db)):
     album = db.execute(
-        select(models.Album).where(models.Album.id == album_id)
+        select(models.Album)
+        .options(
+            selectinload(models.Album.songs),
+            selectinload(models.Album.group),
+        )
+        .where(models.Album.id == album_id)
     ).scalar_one_or_none()
     if not album:
         raise HTTPException(
