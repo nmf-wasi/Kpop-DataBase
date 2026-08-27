@@ -5,7 +5,8 @@ from app.database.database import get_db
 from app.models import models
 from app.schemas.kpop import GroupCreate, GroupResponse, GroupUpdate, PaginationResponse
 from app.utils.slug import slugify
-from app.config.enums import SortOrder, GroupSortFields
+from app.config.enums import SortOrder, GroupSortFields, UserRole
+from app.dependencies import get_current_user, require_role
 
 router = APIRouter()
 
@@ -46,7 +47,11 @@ def get_groups(
 
 
 @router.get("/{group_id}", response_model=GroupResponse)
-def get_group(group_id: int, db: Session = Depends(get_db)):
+def get_group(
+    group_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     group = db.execute(
         select(models.Group)
         .options(
@@ -64,7 +69,11 @@ def get_group(group_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=GroupResponse)
-def create_group(group_data: GroupCreate, db: Session = Depends(get_db)):
+def create_group(
+    group_data: GroupCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(UserRole.ADMIN)),
+):
     group_exists = db.execute(
         select(models.Group).where(models.Group.name == group_data.name)
     ).scalar_one_or_none()
@@ -87,7 +96,12 @@ def create_group(group_data: GroupCreate, db: Session = Depends(get_db)):
 
 
 @router.patch("/{group_id}", response_model=GroupResponse)
-def update_group(group_id: int, group_data: GroupUpdate, db: Session = Depends(get_db)):
+def update_group(
+    group_id: int,
+    group_data: GroupUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(UserRole.ADMIN)),
+):
     group = db.execute(
         select(models.Group).where(models.Group.id == group_id)
     ).scalar_one_or_none()
@@ -128,7 +142,11 @@ def update_group(group_id: int, group_data: GroupUpdate, db: Session = Depends(g
 
 
 @router.delete("/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_group(group_id: int, db: Session = Depends(get_db)):
+def delete_group(
+    group_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(UserRole.ADMIN)),
+):
     group = db.execute(
         select(models.Group).where(models.Group.id == group_id)
     ).scalar_one_or_none()

@@ -5,7 +5,8 @@ from app.database.database import get_db
 from app.models import models
 from app.schemas.kpop import IdolCreate, IdolResponse, IdolUpdate, PaginationResponse
 from app.utils.slug import slugify
-from app.config.enums import IdolSortFields, SortOrder
+from app.config.enums import IdolSortFields, SortOrder, UserRole
+from app.dependencies import get_current_user, require_role
 
 router = APIRouter()
 
@@ -63,6 +64,7 @@ def get_idols(
 def get_idol(
     idol_id: int,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     idol = db.execute(
         select(models.Idol)
@@ -83,6 +85,7 @@ def get_idol(
 def create_idol(
     idol_data: IdolCreate,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(UserRole.ADMIN)),
 ):
     if idol_data.group_id:
         group = db.execute(
@@ -129,6 +132,7 @@ def update_idol(
     idol_id: int,
     idol_data: IdolUpdate,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(UserRole.ADMIN)),
 ):
     # add rbac a bit later
     idol = db.execute(
@@ -176,7 +180,11 @@ def update_idol(
 
 
 @router.delete("/{idol_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_idol(idol_id: int, db: Session = Depends(get_db)):
+def delete_idol(
+    idol_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(UserRole.ADMIN)),
+):
     idol = db.execute(
         select(models.Idol).where(models.Idol.id == idol_id)
     ).scalar_one_or_none()

@@ -5,7 +5,8 @@ from app.database.database import get_db
 from app.models import models
 from app.schemas.kpop import AlbumCreate, AlbumResponse, AlbumUpdate, PaginationResponse
 from app.utils.slug import slugify
-from app.config.enums import SortOrder, AlbumSortFields
+from app.config.enums import SortOrder, AlbumSortFields, UserRole
+from app.dependencies import require_role, get_current_user
 
 router = APIRouter()
 
@@ -56,7 +57,11 @@ def get_albums(
 
 
 @router.get("/{album_id}", response_model=AlbumResponse)
-def get_album(album_id: int, db: Session = Depends(get_db)):
+def get_album(
+    album_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     album = db.execute(
         select(models.Album)
         .options(
@@ -74,7 +79,11 @@ def get_album(album_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=AlbumResponse)
-def create_album(album_data: AlbumCreate, db: Session = Depends(get_db)):
+def create_album(
+    album_data: AlbumCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(UserRole.ADMIN)),
+):
     album_exists = db.execute(
         select(models.Album).where(
             models.Album.name == album_data.name,
@@ -112,7 +121,12 @@ def create_album(album_data: AlbumCreate, db: Session = Depends(get_db)):
 
 
 @router.patch("/{album_id}", response_model=AlbumResponse)
-def update_album(album_id: int, album_data: AlbumUpdate, db: Session = Depends(get_db)):
+def update_album(
+    album_id: int,
+    album_data: AlbumUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(UserRole.ADMIN)),
+):
     album = db.execute(
         select(models.Album).where(
             models.Album.id == album_id,
@@ -167,7 +181,11 @@ def update_album(album_id: int, album_data: AlbumUpdate, db: Session = Depends(g
 
 
 @router.delete("/{album_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_album(album_id: int, db: Session = Depends(get_db)):
+def delete_album(
+    album_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(UserRole.ADMIN)),
+):
     album = db.execute(
         select(models.Album).where(
             models.Album.id == album_id,

@@ -4,7 +4,8 @@ from sqlalchemy import select, func, asc, desc
 from app.database.database import get_db
 from app.models import models
 from app.schemas.kpop import SongCreate, SongResponse, SongUpdate, PaginationResponse
-from app.config.enums import SongSortFields, SortOrder
+from app.config.enums import SongSortFields, SortOrder, UserRole
+from app.dependencies import get_current_user, require_role
 
 router = APIRouter()
 
@@ -51,7 +52,11 @@ def get_songs(
 
 
 @router.get("/{song_id}", response_model=SongResponse)
-def get_song(song_id: int, db: Session = Depends(get_db)):
+def get_song(
+    song_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     song = db.execute(
         select(models.Song)
         .options(
@@ -68,7 +73,11 @@ def get_song(song_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=SongResponse)
-def create_song(song_data: SongCreate, db: Session = Depends(get_db)):
+def create_song(
+    song_data: SongCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(UserRole.ADMIN)),
+):
     """ """
     album = db.execute(
         select(models.Album).where(
@@ -103,7 +112,12 @@ def create_song(song_data: SongCreate, db: Session = Depends(get_db)):
 
 
 @router.patch("/{song_id}", response_model=SongResponse)
-def update_song(song_id: int, song_data: SongUpdate, db: Session = Depends(get_db)):
+def update_song(
+    song_id: int,
+    song_data: SongUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(UserRole.ADMIN)),
+):
     song = db.execute(
         select(models.Song).where(models.Song.id == song_id)
     ).scalar_one_or_none()
@@ -146,7 +160,11 @@ def update_song(song_id: int, song_data: SongUpdate, db: Session = Depends(get_d
 
 
 @router.delete("/{song_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_song(song_id: int, db: Session = Depends(get_db)):
+def delete_song(
+    song_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(UserRole.ADMIN)),
+):
     song = db.execute(
         select(models.Song).where(models.Song.id == song_id)
     ).scalar_one_or_none()

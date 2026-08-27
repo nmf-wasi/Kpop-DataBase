@@ -27,7 +27,10 @@ def get_users(db: Session = Depends(get_db)):
 
 
 @router.post("/create_user", response_model=UserResponse)
-def create_user(user_data: UserCreate, db: Session = Depends(get_db)):
+def create_user(
+    user_data: UserCreate,
+    db: Session = Depends(get_db),
+):
     user = db.execute(
         select(models.User).where(models.User.username == user_data.username)
     ).scalar_one_or_none()
@@ -81,7 +84,7 @@ def login(
         )
 
     # add the login time to db
-    user.last_login=datetime.now()
+    user.last_login = datetime.now()
     db.commit()
     db.refresh(user)
 
@@ -243,16 +246,15 @@ def update_user(
 
 @router.patch("/{user_id}/role", response_model=UserResponse)
 def update_user_role(
-    user_id:int,
-    new_role:UserRole,
-    db:Session=Depends(get_db),
-    current_user:models.User=Depends(require_role(UserRole.ADMIN))
+    user_id: int,
+    new_role: UserRole,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(UserRole.ADMIN)),
 ):
     """An admin can change role of other users, including themselves and other admins"""
     # check if user exists
-    user=db.execute(
-        select(models.User)
-        .where(models.User.id==user_id)
+    user = db.execute(
+        select(models.User).where(models.User.id == user_id)
     ).scalar_one_or_none()
     if not user:
         raise HTTPException(
@@ -262,22 +264,22 @@ def update_user_role(
 
     # no need to check if the current user is admin or not, dependency added confirms that only admins can access this end point
     # check if we are making someone user
-    if new_role!=UserRole.ADMIN and user.role==UserRole.ADMIN:
-        admin_count=db.execute(
+    if new_role != UserRole.ADMIN and user.role == UserRole.ADMIN:
+        admin_count = db.execute(
             select(func.count())
             .select_from(models.User)
-            .where(models.User.role==UserRole.ADMIN)
+            .where(models.User.role == UserRole.ADMIN)
         ).scalar()
 
         if admin_count is None:
-            admin_count=0
+            admin_count = 0
 
-        if admin_count<2:
+        if admin_count < 2:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Cannot demote the last remaining admin!",
             )
-    user.role=new_role
+    user.role = new_role
     db.commit()
     db.refresh(user)
     return user
