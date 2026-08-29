@@ -17,7 +17,7 @@ def test_get_songs_empty(client):
 
 @pytest.mark.songs
 def test_create_songs_requires_admin(client, db_session):
-    """uses a normal user for creating a group, will get 401"""
+    """uses a normal user for creating a song, will get 401"""
     # create album first, song can not be created without album id
     album = models.Album(
         name="New album",
@@ -38,8 +38,8 @@ def test_create_songs_requires_admin(client, db_session):
 
 
 @pytest.mark.songs
-def test_create_album_as_admin(admin_client, db_session):
-    """uses admin client to create album this time, should be a 200"""
+def test_create_song_as_admin(admin_client, db_session):
+    """uses admin client to create song this time, should be a 200"""
 
     # create album first, song can not be created without album id
     album = models.Album(
@@ -94,7 +94,7 @@ def test_create_duplicate_songs_conflict(admin_client, db_session):
 
 @pytest.mark.songs
 @pytest.mark.parametrize("bad_limit", [-1, 0, 101])
-def test_get_albums_rejects_invalid_limit(client, bad_limit):
+def test_get_song_rejects_invalid_limit(client, bad_limit):
     """uses out of range limits, multiple times. each of them should get status code 422"""
     response = client.get(f"/api/songs/?limit={bad_limit}")
     assert response.status_code == 422

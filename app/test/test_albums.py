@@ -1,6 +1,3 @@
-from conftest import (
-    client,
-)  # provides a db session from fresh db instead of production db
 from app.models import models
 import pytest
 
