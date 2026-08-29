@@ -3,9 +3,11 @@ from sqlalchemy.orm import Session
 from app.routers import users, idols, songs, groups, albums
 from app.database.database import get_db
 from app.middleware.rate_limiter import rate_limiter
-
+from app.config.config import settings
 app = FastAPI()
-app.middleware("http")(rate_limiter)
+
+if not settings.TESTING:
+    app.middleware("http")(rate_limiter)
 # registers a middleware for the HTTP protocol, Calling it with (rate_limiter) immediately after is Python's decorator mechanics applied manually
 app.include_router(users.router, prefix="/api/users", tags=["users"])
 app.include_router(idols.router, prefix="/api/idols", tags=["idols"])
