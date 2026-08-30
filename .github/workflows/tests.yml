@@ -46,4 +46,4 @@ jobs:
                   DATABASE_URL: postgresql+psycopg2://postgres:1234@localhost:5432/kpop_test
                   TEST_DATABASE_URL: postgresql+psycopg2://postgres:1234@localhost:5432/kpop_test
                   REDIS_HOST: localhost
-              run: pytest
+              run: python -m pytest
