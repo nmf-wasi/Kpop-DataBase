@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     TEST_DATABASE_URL: str
     TESTING: bool = False
+    REDIS_HOST: str = "localhost"
 
 
 settings = Settings()
